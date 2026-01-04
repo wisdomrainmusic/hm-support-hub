@@ -21,6 +21,16 @@ class HMSH_REST
     {
         register_rest_route(
             'hmsh/v1',
+            '/ping',
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [__CLASS__, 'handle_ping'],
+                'permission_callback' => '__return_true',
+            ]
+        );
+
+        register_rest_route(
+            'hmsh/v1',
             '/tickets',
             [
                 'methods'             => WP_REST_Server::CREATABLE,
@@ -225,11 +235,11 @@ class HMSH_REST
     /**
      * Simple ping endpoint to verify connectivity.
      */
-    public static function ping(WP_REST_Request $request)
+    public static function handle_ping(WP_REST_Request $request)
     {
         return new WP_REST_Response([
-            'ok'      => true,
-            'time'    => time(),
+            'ok'   => true,
+            'time' => time(),
         ], 200);
     }
 }

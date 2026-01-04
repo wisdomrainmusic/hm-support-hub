@@ -48,16 +48,6 @@ class HMSH_REST
                 'permission_callback' => '__return_true',
             ]
         );
-
-        register_rest_route(
-            'hmsh/v1',
-            '/ping',
-            [
-                'methods'             => WP_REST_Server::READABLE,
-                'callback'            => [__CLASS__, 'ping'],
-                'permission_callback' => '__return_true',
-            ]
-        );
     }
 
     /**

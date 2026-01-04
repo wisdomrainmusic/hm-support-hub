@@ -90,7 +90,9 @@ class HMSH_REST
             'client_site_name'  => isset($body['client_site_name']) ? sanitize_text_field($body['client_site_name']) : '',
             'customer_email'    => $email,
             'customer_phone'    => isset($body['customer_phone']) ? sanitize_text_field($body['customer_phone']) : '',
-            'urgency'           => isset($body['urgency']) ? sanitize_text_field($body['urgency']) : 'Normal',
+            'urgency'           => isset($body['urgency'])
+                ? HMSH_Ticket_CPT::map_urgency_tr(sanitize_text_field($body['urgency']))
+                : 'Normal',
             'status'            => 'Yeni',
             'ticket_id'         => isset($body['ticket_id']) ? sanitize_text_field($body['ticket_id']) : '',
             'subject'           => $subject,

@@ -52,4 +52,55 @@ class HMSH_Mailer
 
         wp_mail($recipients, $subject, implode("\n", $message_parts), $headers);
     }
+
+    public static function send_customer_reply($ticket_post_id, $reply_message)
+    {
+        $s = HMSH_Settings::get();
+
+        $customer_email = get_post_meta($ticket_post_id, '_hm_customer_email', true);
+        if (empty($customer_email) || !is_email($customer_email)) {
+            return new WP_Error('hmsh_no_customer_email', 'Müşteri e-posta adresi bulunamadı.');
+        }
+
+        $ticket_subject = get_the_title($ticket_post_id);
+        $site_name = get_post_meta($ticket_post_id, '_hm_site_name', true);
+        $site_url  = get_post_meta($ticket_post_id, '_hm_site_url', true);
+
+        $mail_subject = '[HM Destek] Yanıt: ' . $ticket_subject;
+
+        $lines = array();
+        $lines[] = 'Merhaba,';
+        $lines[] = '';
+        $lines[] = 'Destek talebinize yanıt verdik:';
+        $lines[] = '';
+        $lines[] = $reply_message;
+        $lines[] = '';
+        $lines[] = '---';
+        $lines[] = 'Talep Bilgisi';
+        $lines[] = 'Kayıt ID: ' . $ticket_post_id;
+        if (!empty($site_name)) $lines[] = 'Site: ' . $site_name;
+        if (!empty($site_url))  $lines[] = 'Site URL: ' . $site_url;
+        $lines[] = '---';
+        $lines[] = 'Hızlı Mağaza Pro';
+
+        $body = implode("\n", $lines);
+
+        $headers = array('Content-Type: text/plain; charset=UTF-8');
+
+        if (!empty($s['from_email'])) {
+            $from_name = !empty($s['from_name']) ? $s['from_name'] : 'Hızlı Mağaza Pro';
+            $headers[] = 'From: ' . $from_name . ' <' . $s['from_email'] . '>';
+            $headers[] = 'Return-Path: ' . $s['from_email'];
+            // müşterinin cevaplayabilmesi için:
+            $headers[] = 'Reply-To: ' . $s['from_email'];
+        }
+
+        $ok = wp_mail($customer_email, $mail_subject, $body, $headers);
+
+        if (!$ok) {
+            return new WP_Error('hmsh_mail_failed', 'E-posta gönderilemedi. SMTP loglarını kontrol edin.');
+        }
+
+        return true;
+    }
 }

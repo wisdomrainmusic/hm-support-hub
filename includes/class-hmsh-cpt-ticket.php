@@ -73,7 +73,7 @@ class HMSH_Ticket_CPT
             '_hm_site_name'      => isset($data['client_site_name']) ? sanitize_text_field($data['client_site_name']) : '',
             '_hm_customer_email' => isset($data['customer_email']) ? sanitize_email($data['customer_email']) : '',
             '_hm_customer_phone' => isset($data['customer_phone']) ? sanitize_text_field($data['customer_phone']) : '',
-            '_hm_urgency'        => isset($data['urgency']) ? sanitize_text_field($data['urgency']) : 'Normal',
+            '_hm_urgency'        => isset($data['urgency']) ? self::map_urgency_tr($data['urgency']) : 'Normal',
             '_hm_status'         => isset($data['status']) ? sanitize_text_field($data['status']) : 'Yeni',
             '_hm_ticket_id'      => isset($data['ticket_id']) ? sanitize_text_field($data['ticket_id']) : '',
             '_hm_last_activity'  => time(),
@@ -84,5 +84,28 @@ class HMSH_Ticket_CPT
         }
 
         return $post_id;
+    }
+
+    public static function map_urgency_tr($urgency_raw)
+    {
+        $u = is_string($urgency_raw) ? trim($urgency_raw) : '';
+        $u_l = strtolower($u);
+
+        // Already Turkish?
+        if (in_array($u_l, array('düşük','dusuk','normal','yüksek','yuksek','kritik'), true)) {
+            // normalize Turkish spellings
+            if ($u_l === 'dusuk') return 'Düşük';
+            if ($u_l === 'yuksek') return 'Yüksek';
+            return mb_convert_case($u, MB_CASE_TITLE, 'UTF-8');
+        }
+
+        // English -> Turkish
+        if ($u_l === 'low') return 'Düşük';
+        if ($u_l === 'normal') return 'Normal';
+        if ($u_l === 'high') return 'Yüksek';
+        if ($u_l === 'critical') return 'Kritik';
+
+        // fallback
+        return !empty($u) ? $u : 'Normal';
     }
 }

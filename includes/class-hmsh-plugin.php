@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
 require_once HMSH_PATH . 'includes/class-hmsh-cpt-ticket.php';
 require_once HMSH_PATH . 'includes/class-hmsh-settings.php';
 require_once HMSH_PATH . 'includes/class-hmsh-mailer.php';
+require_once HMSH_PATH . 'includes/class-hmsh-sites.php';
 require_once HMSH_PATH . 'includes/class-hmsh-rest.php';
 require_once HMSH_PATH . 'includes/class-hmsh-admin.php';
 

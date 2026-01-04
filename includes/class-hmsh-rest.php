@@ -230,7 +230,6 @@ class HMSH_REST
         return new WP_REST_Response([
             'ok'      => true,
             'time'    => time(),
-            'version' => (defined('HMSH_VERSION') ? HMSH_VERSION : 'unknown'),
         ], 200);
     }
 }

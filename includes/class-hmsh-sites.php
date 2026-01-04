@@ -86,9 +86,31 @@ class HMSH_Sites {
         return 'hm_site_' . wp_generate_password(32, false, false);
     }
 
-    public static function norm_url($url) {
-        $url = trim((string)$url);
-        $url = rtrim($url, "/ \t\n\r\0\x0B");
-        return strtolower($url);
+    private static function norm_url($url) {
+        $url = trim((string) $url);
+        if ($url === '') return '';
+
+        // Ensure parseable (in case scheme missing)
+        if (strpos($url, '://') === false) {
+            $url = 'https://' . ltrim($url, '/');
+        }
+
+        $parts = @parse_url($url);
+        if (!is_array($parts) || empty($parts['host'])) {
+            // Fallback to old behavior if parse fails
+            $u = strtolower($url);
+            $u = preg_replace('#/+$#', '', $u);
+            return $u;
+        }
+
+        $host = strtolower($parts['host']);
+
+        // Optional: treat www as same site
+        $host = preg_replace('/^www\./', '', $host);
+
+        $port = isset($parts['port']) ? (int) $parts['port'] : 0;
+
+        // If port exists, include it to distinguish installations
+        return $port ? ($host . ':' . $port) : $host;
     }
 }

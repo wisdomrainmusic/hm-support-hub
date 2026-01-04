@@ -38,6 +38,16 @@ class HMSH_REST
                 'permission_callback' => '__return_true',
             ]
         );
+
+        register_rest_route(
+            'hmsh/v1',
+            '/ping',
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [__CLASS__, 'ping'],
+                'permission_callback' => '__return_true',
+            ]
+        );
     }
 
     /**
@@ -209,6 +219,18 @@ class HMSH_REST
             'ok'      => true,
             'site_id' => $row['site_id'],
             'api_key' => $row['api_key'],
+        ], 200);
+    }
+
+    /**
+     * Simple ping endpoint to verify connectivity.
+     */
+    public static function ping(WP_REST_Request $request)
+    {
+        return new WP_REST_Response([
+            'ok'      => true,
+            'time'    => time(),
+            'version' => (defined('HMSH_VERSION') ? HMSH_VERSION : 'unknown'),
         ], 200);
     }
 }

@@ -28,6 +28,16 @@ class HMSH_REST
                 'permission_callback' => [__CLASS__, 'check_auth'],
             ]
         );
+
+        register_rest_route(
+            'hmsh/v1',
+            '/register',
+            [
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => [__CLASS__, 'handle_register'],
+                'permission_callback' => [__CLASS__, 'check_auth'],
+            ]
+        );
     }
 
     /**
@@ -45,6 +55,14 @@ class HMSH_REST
             return new WP_Error('hmsh_missing_key', __('X-HM-Key header eksik.', 'hm-support-hub'), ['status' => 403]);
         }
 
+        $site = self::find_site_by_key($header_key, $request);
+
+        if ($site) {
+            $request->set_param('hmsh_site_id', isset($site['site_id']) ? $site['site_id'] : '');
+
+            return true;
+        }
+
         if (empty($shared_key)) {
             return new WP_Error('hmsh_no_key', __('API anahtarı ayarlardan girilmemiş.', 'hm-support-hub'), ['status' => 401]);
         }
@@ -57,6 +75,41 @@ class HMSH_REST
     }
 
     /**
+     * Locate a site by API key (optionally filtered by site header).
+     *
+     * @param string           $key     API key to match.
+     * @param WP_REST_Request  $request Request instance.
+     *
+     * @return array|null
+     */
+    private static function find_site_by_key($key, WP_REST_Request $request)
+    {
+        $key = trim((string) $key);
+
+        if (empty($key)) {
+            return null;
+        }
+
+        $site_header = trim((string) $request->get_header('x-hm-site'));
+
+        if ($site_header !== '') {
+            $site = HMSH_Sites::find_by_site_id($site_header);
+
+            if (!empty($site) && !empty($site['api_key']) && hash_equals((string) $site['api_key'], $key)) {
+                return $site;
+            }
+        }
+
+        foreach (HMSH_Sites::get_all() as $row) {
+            if (!empty($row['api_key']) && hash_equals((string) $row['api_key'], $key)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Handle ticket creation via REST.
      *
      * @param WP_REST_Request $request REST request.
@@ -66,6 +119,7 @@ class HMSH_REST
     public static function handle_ticket_create(WP_REST_Request $request)
     {
         $site_header = sanitize_text_field($request->get_header('x-hm-site'));
+        $site_id_from_auth = sanitize_text_field($request->get_param('hmsh_site_id'));
         $body = $request->get_json_params();
 
         if (!is_array($body)) {
@@ -85,7 +139,7 @@ class HMSH_REST
         }
 
         $data = [
-            'site_id'           => $site_header ?: '',
+            'site_id'           => $site_id_from_auth ?: $site_header,
             'client_site_url'   => isset($body['client_site_url']) ? esc_url_raw($body['client_site_url']) : '',
             'client_site_name'  => isset($body['client_site_name']) ? sanitize_text_field($body['client_site_name']) : '',
             'customer_email'    => $email,
@@ -110,6 +164,44 @@ class HMSH_REST
         return rest_ensure_response([
             'success'   => true,
             'ticket_id' => $post_id,
+        ]);
+    }
+
+    /**
+     * Handle client auto-registration. Generates a per-site API key.
+     *
+     * @param WP_REST_Request $request REST request.
+     *
+     * @return WP_REST_Response|WP_Error
+     */
+    public static function handle_register(WP_REST_Request $request)
+    {
+        $body = $request->get_json_params();
+
+        if (!is_array($body)) {
+            return new WP_Error('hmsh_bad_json', __('Geçersiz JSON gövdesi.', 'hm-support-hub'), ['status' => 400]);
+        }
+
+        $site_name = isset($body['site_name']) ? sanitize_text_field($body['site_name']) : '';
+        $site_url  = isset($body['site_url']) ? esc_url_raw($body['site_url']) : '';
+        $site_id   = isset($body['site_id']) ? sanitize_text_field($body['site_id']) : '';
+
+        if (empty($site_url)) {
+            return new WP_Error(
+                'hmsh_missing_site_url',
+                __('site_url alanı zorunludur.', 'hm-support-hub'),
+                ['status' => 400]
+            );
+        }
+
+        $site = HMSH_Sites::upsert($site_name, $site_url, $site_id);
+
+        return rest_ensure_response([
+            'success'   => true,
+            'site_id'   => isset($site['site_id']) ? $site['site_id'] : '',
+            'api_key'   => isset($site['api_key']) ? $site['api_key'] : '',
+            'site_url'  => isset($site['site_url']) ? $site['site_url'] : '',
+            'site_name' => isset($site['site_name']) ? $site['site_name'] : '',
         ]);
     }
 }
